@@ -101,7 +101,7 @@ func cacheDir() -> fs.Path {
 /// Gets everything a boot of `o.Image` needs: the image (pulled if
 /// asked), the boot files, the image's tree as a cpio (made once), and
 /// this boot's own cpio on top.
-public func Prepare(_ o: Options, progress: (string) -> Void = { _ in }) async throws -> Prepared {
+public func Prepare(o: Options, progress: (string) -> Void = { _ in }) async throws -> Prepared {
     let st = try store.Store(root: o.StoreRoot)
     var img: store.Image
     if st.Resolve(o.Image) == nil && o.Pull {
@@ -149,7 +149,7 @@ public func Prepare(_ o: Options, progress: (string) -> Void = { _ in }) async t
 }
 
 /// The VM's configuration for what Prepare made.
-public func MakeConfig(_ p: Prepared, _ o: Options) -> vm.Config {
+public func MakeConfig(p: Prepared, o: Options) -> vm.Config {
     var cfg = vm.Config(cpus: o.Cpus, memory: uint64(o.MemoryMiB) << 20)
     cfg.Boot = .linux(kernel: p.Kernel, initrd: p.Initrd, cmdline: p.Cmdline)
     if o.Network {
@@ -160,7 +160,7 @@ public func MakeConfig(_ p: Prepared, _ o: Options) -> vm.Config {
 
 /// Boots the image with the terminal as its console, and waits for it
 /// to power off.
-public func Run(_ o: Options, progress: (string) -> Void = { _ in }) async throws -> vm.ExitStatus {
+public func Run(o: Options, progress: (string) -> Void = { _ in }) async throws -> vm.ExitStatus {
     let p = try await Prepare(o, progress: progress)
     progress("booting \(p.Image.Name): \(p.Command.joined(separator: " ")) (\(o.Cpus) CPUs, \(o.MemoryMiB) MiB)")
     let machine = try vm.Create(MakeConfig(p, o), consoleWriter: vm.StdioWriter())
@@ -185,7 +185,7 @@ public func Run(_ o: Options, progress: (string) -> Void = { _ in }) async throw
 }
 
 /// A word quoted for sh: 'it'\''s'.
-func shQuote(_ s: string) -> string {
+func shQuote(s: string) -> string {
     var out = "'"
     for c in s {
         if c == "'" {
@@ -210,19 +210,19 @@ struct Guest {
     var Build: bool = false
 }
 
-func bootOverlay(_ o: Options, _ img: store.Image, _ command: [string], _ st: store.Store) throws -> [uint8] {
+func bootOverlay(o: Options, img: store.Image, command: [string], st: store.Store) throws -> [uint8] {
     let host = o.Hostname ?? img.Name.split(separator: "/").last.map { string($0) }?
         .split(separator: ":").first.map { string($0) } ?? "vertex"
     return try overlay(Guest(Env: img.Config.Env + o.Env, WorkingDir: o.WorkingDir ?? img.Config.WorkingDir,
                              User: img.Config.User, Command: command, Network: o.Network, Hostname: host), st)
 }
 
-func overlay(_ g: Guest, _ st: store.Store) throws -> [uint8] {
+func overlay(g: Guest, st: store.Store) throws -> [uint8] {
     var w = cpio.Writer(io.Cursor())
-    func dir(_ path: string, mode: uint32 = 0o755) throws {
+    func dir(path: string, mode: uint32 = 0o755) throws {
         try w.WriteHeader(cpio.Header(name: path, mode: cpio.ModeType.directory | mode, nlink: 2))
     }
-    func file(_ path: string, _ data: [uint8], mode: uint32 = 0o755) throws {
+    func file(path: string, data: [uint8], mode: uint32 = 0o755) throws {
         try w.WriteHeader(cpio.Header(name: path, mode: cpio.ModeType.regular | mode, size: int64(data.count)))
         try w.Write(data)
     }
@@ -270,7 +270,7 @@ func overlay(_ g: Guest, _ st: store.Store) throws -> [uint8] {
 }
 
 /// bin/busybox.static out of the busybox-static .apk.
-func busybox(_ st: store.Store) throws -> [uint8] {
+func busybox(st: store.Store) throws -> [uint8] {
     guard let p = fetch.Path(fetch.Catalog.alpineBusybox, in: st) else {
         throw ContainerError.missing("busybox")
     }
@@ -285,7 +285,7 @@ func busybox(_ st: store.Store) throws -> [uint8] {
 
 /// The modules a guest needs, by file name in the order they load, out
 /// of Alpine's initramfs.
-func kernelModules(_ st: store.Store) throws -> [(string, [uint8])] {
+func kernelModules(st: store.Store) throws -> [(string, [uint8])] {
     guard let p = fetch.Path(fetch.Catalog.alpineInitramfs, in: st) else {
         throw ContainerError.missing("initramfs")
     }

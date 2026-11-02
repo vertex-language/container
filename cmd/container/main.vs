@@ -32,7 +32,7 @@ Images are oci's: `oci pull`, `oci images`, `oci push` manage them.
 """)
 }
 
-func run(_ args: [string], root: string?) async -> int32 {
+func run(args: [string], root: string?) async -> int32 {
     var o: virt.Options? = nil
     var memory: int? = nil
     var cpus: int? = nil
@@ -87,7 +87,7 @@ func run(_ args: [string], root: string?) async -> int32 {
     }
 }
 
-func buildCommand(_ args: [string], root: string?) async -> int32 {
+func buildCommand(args: [string], root: string?) async -> int32 {
     var o = build.Options(context: ".")
     var memory = 2048
     var cpus = 2
