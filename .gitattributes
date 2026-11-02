@@ -1,0 +1,3 @@
+# Vertex sources: plain text on GitHub, not GLSL, and left out of the language stats.
+*.vs linguist-language=Text linguist-detectable=false
+*.vsx linguist-language=Text linguist-detectable=false
